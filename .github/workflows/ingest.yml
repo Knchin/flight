@@ -1,0 +1,100 @@
+name: Nightly Aviation Data Ingestion
+
+on:
+  schedule:
+    # Run at 03:00 UTC daily (after OpenSky nightly batch update)
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force refresh even if recently run'
+        required: false
+        default: 'false'
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+  OPENSKY_CLIENT_ID: ${{ secrets.OPENSKY_CLIENT_ID }}
+  OPENSKY_CLIENT_SECRET: ${{ secrets.OPENSKY_CLIENT_SECRET }}
+  AERODATABOX_API_KEY: ${{ secrets.AERODATABOX_API_KEY }}
+  AERODATABOX_API_HOST: ${{ secrets.AERODATABOX_API_HOST }}
+  FLIGHTAWARE_API_KEY: ${{ secrets.FLIGHTAWARE_API_KEY }}
+  AVIATIONSTACK_API_KEY: ${{ secrets.AVIATIONSTACK_API_KEY }}
+
+jobs:
+  ingest:
+    name: Ingest Aviation Data
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run TypeScript compilation
+        run: npx tsc --noEmit
+      
+      - name: Run ingestion script
+        run: |
+          node scripts/nightly-ingestion.js
+        env:
+          FORCE_REFRESH: ${{ github.event.inputs.force }}
+      
+      - name: Log completion
+        if: always()
+        run: |
+          echo "Ingestion job completed at $(date)"
+
+  refresh-rotations:
+    name: Refresh Recent Rotations
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: ingest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Refresh rotations for recently searched flights
+        run: |
+          node scripts/refresh-rotations.js
+
+  cleanup:
+    name: Cleanup Old Data
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Clean expired cache and old sync runs
+        run: |
+          node scripts/cleanup.js

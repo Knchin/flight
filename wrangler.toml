@@ -1,0 +1,22 @@
+name = "aircraft-rotation-tracker"
+compatibility_date = "2024-09-10"
+pages_build_output_dir = "dist"
+
+[vars]
+# Environment variables will be set in Cloudflare Pages dashboard
+# SUPABASE_URL = ""
+# SUPABASE_ANON_KEY = ""
+# SUPABASE_SERVICE_ROLE_KEY = ""
+# OPENSKY_CLIENT_ID = ""
+# OPENSKY_CLIENT_SECRET = ""
+# AERODATABOX_API_KEY = ""
+# AERODATABOX_API_HOST = "api.aerodatabox.com"
+# FLIGHTAWARE_API_KEY = ""
+# AVIATIONSTACK_API_KEY = ""
+
+[build]
+command = "npm run build"
+cwd = "."
+
+[functions]
+node_compat = true
