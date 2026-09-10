@@ -5,21 +5,14 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-
-env:
-  # These are set in GitHub repository Settings > Secrets and variables > Actions
-  # SUPABASE_URL
-  # SUPABASE_SERVICE_ROLE_KEY
-  # SUPABASE_ANON_KEY
-  # OPENSKY_CLIENT_ID
-  # OPENSKY_CLIENT_SECRET
-  # AERODATABOX_API_KEY
-  # AERODATABOX_API_HOST
-  # FLIGHTAWARE_API_KEY
-  # AVIATIONSTACK_API_KEY
-  # CLOUDFLARE_API_TOKEN
-  # CLOUDFLARE_ACCOUNT_ID
-  # CLOUDFLARE_PROJECT_NAME
+  schedule:
+    - cron: '0 3 * * *'  # Run at 03:00 UTC daily
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force refresh even if recently run'
+        required: false
+        default: 'false'
 
 jobs:
   test:
@@ -185,14 +178,3 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-
-# Scheduled nightly runs
-on:
-  schedule:
-    - cron: '0 3 * * *'  # Run at 03:00 UTC daily
-  workflow_dispatch:
-    inputs:
-      force:
-        description: 'Force refresh even if recently run'
-        required: false
-        default: 'false'
