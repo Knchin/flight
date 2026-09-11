@@ -7,6 +7,12 @@
  * import cross-directory into src/, so we bundle here first and deploy
  * with `wrangler pages deploy --no-bundle`.
  *
+ * Environment variables referenced as process.env.NAME inside the functions
+ * are baked into the bundle as literals (server-side only, never served to
+ * the browser). This makes the deployed Functions independent of Cloudflare
+ * env injection. Provide them via the BUILD_BAKE_ENV env var: a
+ * comma-separated list like "SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY".
+ *
  * Usage:  node scripts/build-functions.js
  * Input:  functions/api/*.ts
  * Output: functions/api/*.mjs (bundled), original .ts files removed
@@ -17,6 +23,28 @@ import { join, basename } from 'node:path';
 import { build } from 'esbuild';
 
 const FUNCTIONS_DIR = join(import.meta.dirname, '..', 'functions', 'api');
+
+// Env vars to bake into the bundle (if present). Configured via BUILD_BAKE_ENV
+// in CI so secrets/vars from GitHub flow straight into the server bundle.
+const bakeKeys = (process.env.BUILD_BAKE_ENV || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const define = {};
+const baked = [];
+for (const key of bakeKeys) {
+  const value = process.env[key];
+  if (value) {
+    define[`process.env.${key}`] = JSON.stringify(value);
+    baked.push(key);
+  }
+}
+if (baked.length > 0) {
+  console.log(`Baking env vars into function bundle: ${baked.join(', ')}`);
+} else {
+  console.log('No env vars baked into function bundle (BUILD_BAKE_ENV empty).');
+}
 
 const tsFiles = readdirSync(FUNCTIONS_DIR)
   .filter((f) => f.endsWith('.ts'))
@@ -55,6 +83,7 @@ globalThis.process.env = globalThis.process.env || {};
       target: 'es2022',
       mainFields: ['module', 'main'],
       banner: { js: banner },
+      define,
       outfile: outPath,
       logLevel: 'info',
       // Keep all imports inside the bundle (no externals)

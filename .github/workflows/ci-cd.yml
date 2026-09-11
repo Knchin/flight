@@ -109,6 +109,16 @@ jobs:
 
       - name: Pre-bundle Pages Functions (resolves all npm imports)
         run: node scripts/build-functions.js
+        env:
+          BUILD_BAKE_ENV: "SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,OPENSKY_CLIENT_ID,OPENSKY_CLIENT_SECRET,AERODATABOX_API_KEY,AERODATABOX_API_HOST,FLIGHTAWARE_API_KEY,AVIATIONSTACK_API_KEY"
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || vars.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENSKY_CLIENT_ID: ${{ secrets.OPENSKY_CLIENT_ID || vars.OPENSKY_CLIENT_ID }}
+          OPENSKY_CLIENT_SECRET: ${{ secrets.OPENSKY_CLIENT_SECRET || vars.OPENSKY_CLIENT_SECRET }}
+          AERODATABOX_API_KEY: ${{ secrets.AERODATABOX_API_KEY || vars.AERODATABOX_API_KEY }}
+          AERODATABOX_API_HOST: ${{ secrets.AERODATABOX_API_HOST || vars.AERODATABOX_API_HOST }}
+          FLIGHTAWARE_API_KEY: ${{ secrets.FLIGHTAWARE_API_KEY || vars.FLIGHTAWARE_API_KEY }}
+          AVIATIONSTACK_API_KEY: ${{ secrets.AVIATIONSTACK_API_KEY || vars.AVIATIONSTACK_API_KEY }}
 
       - name: Create Pages project if it doesn't exist
         run: |
@@ -143,14 +153,14 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           PROJECT_NAME: ${{ vars.CLOUDFLARE_PROJECT_NAME != '' && vars.CLOUDFLARE_PROJECT_NAME || 'aircraft-rotation-tracker' }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          OPENSKY_CLIENT_ID: ${{ secrets.OPENSKY_CLIENT_ID }}
-          OPENSKY_CLIENT_SECRET: ${{ secrets.OPENSKY_CLIENT_SECRET }}
-          AERODATABOX_API_KEY: ${{ secrets.AERODATABOX_API_KEY }}
-          AERODATABOX_API_HOST: ${{ secrets.AERODATABOX_API_HOST }}
-          FLIGHTAWARE_API_KEY: ${{ secrets.FLIGHTAWARE_API_KEY }}
-          AVIATIONSTACK_API_KEY: ${{ secrets.AVIATIONSTACK_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || vars.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENSKY_CLIENT_ID: ${{ secrets.OPENSKY_CLIENT_ID || vars.OPENSKY_CLIENT_ID }}
+          OPENSKY_CLIENT_SECRET: ${{ secrets.OPENSKY_CLIENT_SECRET || vars.OPENSKY_CLIENT_SECRET }}
+          AERODATABOX_API_KEY: ${{ secrets.AERODATABOX_API_KEY || vars.AERODATABOX_API_KEY }}
+          AERODATABOX_API_HOST: ${{ secrets.AERODATABOX_API_HOST || vars.AERODATABOX_API_HOST }}
+          FLIGHTAWARE_API_KEY: ${{ secrets.FLIGHTAWARE_API_KEY || vars.FLIGHTAWARE_API_KEY }}
+          AVIATIONSTACK_API_KEY: ${{ secrets.AVIATIONSTACK_API_KEY || vars.AVIATIONSTACK_API_KEY }}
 
       - name: "Deploy to Cloudflare Pages (--no-bundle, functions pre-bundled)"
         run: npx wrangler@4 pages deploy dist --project-name "$PROJECT_NAME" --branch main --no-bundle
