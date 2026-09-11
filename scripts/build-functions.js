@@ -38,8 +38,9 @@ await Promise.all(
       entryPoints: [entryPoint],
       bundle: true,
       format: 'esm',
-      platform: 'neutral',
+      platform: 'node',
       target: 'es2022',
+      mainFields: ['module', 'main'],
       outfile: outPath,
       logLevel: 'info',
       // Keep all imports inside the bundle (no externals)
