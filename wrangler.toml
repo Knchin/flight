@@ -3,9 +3,6 @@ compatibility_date = "2024-09-10"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
 
-[alias]
-"@supabase/supabase-js" = "node_modules/@supabase/supabase-js"
-
 [vars]
 # Environment variables will be set in Cloudflare Pages dashboard
 # SUPABASE_URL = ""

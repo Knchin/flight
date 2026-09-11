@@ -92,11 +92,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Download frontend build artifact
         uses: actions/download-artifact@v5
         with:
           name: frontend-dist
           path: dist/
+
+      - name: Pre-bundle Pages Functions (resolves all npm imports)
+        run: node scripts/build-functions.js
 
       - name: Create Pages project if it doesn't exist
         run: |
@@ -107,8 +119,8 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           PROJECT_NAME: ${{ vars.CLOUDFLARE_PROJECT_NAME != '' && vars.CLOUDFLARE_PROJECT_NAME || 'aircraft-rotation-tracker' }}
 
-      - name: Deploy to Cloudflare Pages (deploys dist/ static assets + functions/)
-        run: npx wrangler@4 pages deploy dist --project-name "$PROJECT_NAME" --branch main
+      - name: Deploy to Cloudflare Pages (--no-bundle: functions already bundled)
+        run: npx wrangler@4 pages deploy dist --project-name "$PROJECT_NAME" --branch main --no-bundle
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}

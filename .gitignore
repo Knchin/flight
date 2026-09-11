@@ -46,6 +46,7 @@ coverage/
 
 # Wrangler
 .wrangler/
+functions/api/*.mjs
 
 # Temporary files
 *.tmp
