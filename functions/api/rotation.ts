@@ -60,7 +60,7 @@ export async function onRequestPost(context: any): Promise<Response> {
     }
     
     // Execute rotation reconstruction
-    const result: SearchResult = await reconstructRotation(searchRequest, getSupabase());
+    const result: SearchResult = await reconstructRotation(searchRequest, getSupabase(env));
     
     const status = result.success ? 200 : 404;
     
@@ -115,7 +115,7 @@ export async function onRequestGet(context: any): Promise<Response> {
     date,
   };
   
-  const result = await reconstructRotation(searchRequest, getSupabase());
+  const result = await reconstructRotation(searchRequest, getSupabase(env));
   const status = result.success ? 200 : 404;
   
   return new Response(JSON.stringify(result), {

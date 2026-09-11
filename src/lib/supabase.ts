@@ -2,18 +2,28 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Lazy client: created on first use so that process.env is populated by the
-// time it is called (Cloudflare injects env via context.env per-request, not
-// via process.env at module load).
+// Lazy client: created on first use so that env is populated before first call
+// (Cloudflare injects env via context.env per-request, not process.env).
 let client: ReturnType<typeof createClient> | null = null;
 
-export function getSupabase() {
+export function getSupabase(env: Record<string, string | undefined> = {}) {
   if (!client) {
-    const supabaseUrl = process.env.SUPABASE_URL || '';
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    const supabaseUrl =
+      env.SUPABASE_URL || process.env.SUPABASE_URL || '';
+    const supabaseServiceKey =
+      env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      '';
 
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.warn('[Supabase] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+      const missing = [
+        !supabaseUrl ? 'SUPABASE_URL' : null,
+        !supabaseServiceKey ? 'SUPABASE_SERVICE_ROLE_KEY' : null,
+      ].filter(Boolean);
+      throw new Error(
+        `[Supabase] Missing required env var(s): ${missing.join(', ')}. ` +
+        'Set them in Cloudflare Pages → Settings → Environment variables (Production) or in wrangler.toml [vars], then redeploy.',
+      );
     }
 
     client = createClient(supabaseUrl, supabaseServiceKey, {

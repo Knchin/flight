@@ -10,7 +10,7 @@ export async function onRequestGet(context: any): Promise<Response> {
     Object.assign(process.env, env);
   }
   
-  const supabase = getSupabase();
+  const supabase = getSupabase(env);
   const url = new URL(request.url);
   const action = url.searchParams.get('action') || 'status';
   
@@ -43,6 +43,7 @@ export async function onRequestGet(context: any): Promise<Response> {
           },
           env: {
             supabase_configured: !!process.env.SUPABASE_URL,
+            supabase_service_role_configured: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
           },
         }, null, 2), {
           headers: { 'Content-Type': 'application/json' },

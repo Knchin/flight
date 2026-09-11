@@ -119,6 +119,39 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           PROJECT_NAME: ${{ vars.CLOUDFLARE_PROJECT_NAME != '' && vars.CLOUDFLARE_PROJECT_NAME || 'aircraft-rotation-tracker' }}
 
+      - name: Set environment variables on Pages project (Functions read via context.env)
+        run: |
+          for pair in \
+            "SUPABASE_URL=$SUPABASE_URL" \
+            "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY" \
+            "OPENSKY_CLIENT_ID=$OPENSKY_CLIENT_ID" \
+            "OPENSKY_CLIENT_SECRET=$OPENSKY_CLIENT_SECRET" \
+            "AERODATABOX_API_KEY=$AERODATABOX_API_KEY" \
+            "AERODATABOX_API_HOST=$AERODATABOX_API_HOST" \
+            "FLIGHTAWARE_API_KEY=$FLIGHTAWARE_API_KEY" \
+            "AVIATIONSTACK_API_KEY=$AVIATIONSTACK_API_KEY"; do
+            key="${pair%%=*}"
+            value="${pair#*=}"
+            if [ -n "$value" ]; then
+              echo "$value" | npx wrangler@4 pages secret put "$key" --project-name "$PROJECT_NAME" --env production >/dev/null 2>&1 \
+                || echo "WARN: failed to set $key"
+            else
+              echo "SKIP $key (no value provided)"
+            fi
+          done
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          PROJECT_NAME: ${{ vars.CLOUDFLARE_PROJECT_NAME != '' && vars.CLOUDFLARE_PROJECT_NAME || 'aircraft-rotation-tracker' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENSKY_CLIENT_ID: ${{ secrets.OPENSKY_CLIENT_ID }}
+          OPENSKY_CLIENT_SECRET: ${{ secrets.OPENSKY_CLIENT_SECRET }}
+          AERODATABOX_API_KEY: ${{ secrets.AERODATABOX_API_KEY }}
+          AERODATABOX_API_HOST: ${{ secrets.AERODATABOX_API_HOST }}
+          FLIGHTAWARE_API_KEY: ${{ secrets.FLIGHTAWARE_API_KEY }}
+          AVIATIONSTACK_API_KEY: ${{ secrets.AVIATIONSTACK_API_KEY }}
+
       - name: "Deploy to Cloudflare Pages (--no-bundle, functions pre-bundled)"
         run: npx wrangler@4 pages deploy dist --project-name "$PROJECT_NAME" --branch main --no-bundle
         env:
