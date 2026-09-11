@@ -1,5 +1,6 @@
 name = "aircraft-rotation-tracker"
 compatibility_date = "2024-09-10"
+compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
 
 [vars]
@@ -13,10 +14,3 @@ pages_build_output_dir = "dist"
 # AERODATABOX_API_HOST = "api.aerodatabox.com"
 # FLIGHTAWARE_API_KEY = ""
 # AVIATIONSTACK_API_KEY = ""
-
-[build]
-command = "npm run build"
-cwd = "."
-
-[functions]
-node_compat = true
