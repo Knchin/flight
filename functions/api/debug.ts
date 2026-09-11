@@ -1,7 +1,7 @@
 // Cloudflare Pages Function - Debug endpoint
 // GET /api/debug
 
-import { supabase } from '../../src/lib/supabase';
+import { getSupabase } from '../../src/lib/supabase';
 
 export async function onRequestGet(context: any): Promise<Response> {
   const { request, env } = context;
@@ -10,6 +10,7 @@ export async function onRequestGet(context: any): Promise<Response> {
     Object.assign(process.env, env);
   }
   
+  const supabase = getSupabase();
   const url = new URL(request.url);
   const action = url.searchParams.get('action') || 'status';
   

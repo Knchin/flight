@@ -4,7 +4,7 @@
 import type { SearchRequest, SearchResult } from '../../src/types';
 import { initializeProviders } from '../../src/providers';
 import { reconstructRotation } from '../../src/services/rotation-engine';
-import { supabase } from '../../src/lib/supabase';
+import { getSupabase } from '../../src/lib/supabase';
 
 // Initialize providers on first request
 let providersInitialized = false;
@@ -60,7 +60,7 @@ export async function onRequestPost(context: any): Promise<Response> {
     }
     
     // Execute rotation reconstruction
-    const result: SearchResult = await reconstructRotation(searchRequest, supabase);
+    const result: SearchResult = await reconstructRotation(searchRequest, getSupabase());
     
     const status = result.success ? 200 : 404;
     
@@ -115,7 +115,7 @@ export async function onRequestGet(context: any): Promise<Response> {
     date,
   };
   
-  const result = await reconstructRotation(searchRequest, supabase);
+  const result = await reconstructRotation(searchRequest, getSupabase());
   const status = result.success ? 200 : 404;
   
   return new Response(JSON.stringify(result), {
