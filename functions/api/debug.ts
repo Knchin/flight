@@ -10,11 +10,11 @@ export async function onRequestGet(context: any): Promise<Response> {
     Object.assign(process.env, env);
   }
   
-  const supabase = getSupabase(env);
   const url = new URL(request.url);
   const action = url.searchParams.get('action') || 'status';
   
   try {
+    const supabase = getSupabase(env);
     switch (action) {
       case 'status': {
         // Provider status
