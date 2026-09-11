@@ -78,10 +78,11 @@ export function getProviderForCapability(capability: 'flight_lookup' | 'aircraft
       return providers.find(p => p.id === 'opensky');
       
     case 'flight_lookup':
-      // Prefer AviationStack (unblocked) > FlightAware > AeroDataBox
-      // AeroDataBox is last because its Cloudflare WAF blocks requests
-      // from Cloudflare Pages Functions IP ranges.
-      return providers.find(p => p.id === 'aviationstack') ||
+      // OpenSky is the primary: its Cloudflare-backed API accepts requests
+      // from Cloudflare Pages Functions, while AeroDataBox/AviationStack
+      // return 403 (WAF blocks datacenter/Pages IP ranges).
+      return providers.find(p => p.id === 'opensky') ||
+             providers.find(p => p.id === 'aviationstack') ||
              providers.find(p => p.id === 'flightaware') ||
              providers.find(p => p.id === 'aerodatabox');
       

@@ -176,19 +176,114 @@ export class OpenSkyProvider extends BaseProvider {
   }
   
   async searchFlight(request: SearchRequest): Promise<FlightLookupResult> {
-    // OpenSky doesn't support direct flight number lookup
-    // We need to search via airports or use another provider first
-    // This provider is mainly for aircraft rotation reconstruction
-    
+    const flightNumber = this.normalizeFlightNumber(request.flight_number);
+
+    // Build ICAO-format callsign candidates (OpenSky uses ICAO callsigns)
+    const candidateCallsigns = buildCallsignCandidates(flightNumber);
+    if (candidateCallsigns.length === 0) {
+      return {
+        flight: null,
+        aircraft: null,
+        confidence: 'UNKNOWN',
+        sources: ['opensky'],
+        raw_responses: { error: 'Unable to parse flight number into a callsign' },
+      };
+    }
+
+    // OpenSky /flights/all only accepts limited intervals, so scan the day in
+    // 2-hour windows and collect flights whose callsign matches.
+    const baseDate = new Date(request.date + 'T00:00:00Z');
+    const dayStart = Math.floor(baseDate.getTime() / 1000);
+    const dayEnd = dayStart + 24 * 3600;
+    const chunkSize = 2 * 3600;
+
+    const matches: OpenSkyFlight[] = [];
+    const exactFlags: boolean[] = [];
+    for (let begin = dayStart; begin < dayEnd; begin += chunkSize) {
+      const end = Math.min(begin + chunkSize, dayEnd);
+      try {
+        const flights = await this.getFlightsInInterval(begin, end);
+        for (const f of flights) {
+          const cs = (f.callsign || '').trim().toUpperCase();
+          const exact = candidateCallsigns.includes(cs);
+          const partial = !exact && candidateCallsigns.some(c => cs.includes(c) || c.includes(cs));
+          if (exact || partial) {
+            matches.push(f);
+            exactFlags.push(exact);
+          }
+        }
+      } catch (e) {
+        console.warn(`[OpenSky] /flights/all scan failed for ${begin}:`, e);
+      }
+    }
+
+    if (matches.length === 0) {
+      return {
+        flight: null,
+        aircraft: null,
+        confidence: 'UNKNOWN',
+        sources: ['opensky'],
+        raw_responses: { opensky: null },
+      };
+    }
+
+    // Prefer exact callsign match, then most recent
+    const exactIndex = exactFlags.indexOf(true);
+    const best = exactIndex !== -1
+      ? matches[exactIndex]
+      : [...matches].sort((a, b) => b.lastSeen - a.lastSeen)[0];
+
+    const flight: Flight = {
+      id: '',
+      flight_number: flightNumber,
+      callsign: (best.callsign || '').trim().toUpperCase() || null,
+      airline_icao: best.callsign?.trim().slice(0, 3).toUpperCase() || null,
+      origin_icao: best.estDepartureAirport || '',
+      destination_icao: best.estArrivalAirport || '',
+      scheduled_departure: new Date(best.firstSeen * 1000).toISOString(),
+      scheduled_arrival: new Date(best.lastSeen * 1000).toISOString(),
+      actual_departure: new Date(best.firstSeen * 1000).toISOString(),
+      actual_arrival: new Date(best.lastSeen * 1000).toISOString(),
+      estimated_departure: null,
+      estimated_arrival: null,
+      flight_date: request.date,
+      aircraft_id: '',
+      aircraft_icao24: best.icao24.toLowerCase() || null,
+      scheduled_aircraft_id: null,
+      scheduled_aircraft_icao24: null,
+      status: 'landed',
+      source: 'opensky',
+      confidence: 'MEDIUM',
+      confidence_score: 70,
+      distance_km: null,
+      flight_duration_min: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const aircraft: Aircraft | null = flight.aircraft_icao24 ? {
+      id: '',
+      icao24: flight.aircraft_icao24,
+      registration: null,
+      aircraft_type: null,
+      type_name: null,
+      operator_icao: flight.airline_icao,
+      serial_number: null,
+      year_built: null,
+      first_seen_at: null,
+      last_seen_at: null,
+      status: 'active',
+    } : null;
+
     return {
-      flight: null,
-      aircraft: null,
-      confidence: 'UNKNOWN',
-      sources: [],
-      raw_responses: { error: 'OpenSky does not support flight number lookup directly' },
+      flight,
+      aircraft,
+      confidence: 'MEDIUM',
+      sources: ['opensky'],
+      raw_responses: { opensky: matches },
     };
   }
-  
+
   async getAircraftForFlight(flight: Flight): Promise<Aircraft | null> {
     if (!flight.aircraft_icao24) return null;
     
@@ -401,6 +496,83 @@ export class OpenSkyProvider extends BaseProvider {
 if (typeof process !== 'undefined' && process.env.OPENSKY_CLIENT_ID && process.env.OPENSKY_CLIENT_SECRET) {
   const provider = new OpenSkyProvider();
   providerRegistry.register(provider);
+}
+
+// ============================================================
+// IATA -> ICAO airline prefix map (used to build OpenSky callsigns)
+// OpenSky /flights/all returns ICAO-format callsigns (e.g. RYR9034),
+// while users typically enter IATA flight numbers (e.g. FR9034).
+// ============================================================
+
+const iataToIcaoPrefix: Record<string, string> = {
+  'FR': 'RYR',
+  'U2': 'EZY',
+  'W6': 'WZZ',
+  'BA': 'BAW',
+  'AF': 'AFR',
+  'LH': 'DLH',
+  'IB': 'IBE',
+  'KL': 'KLM',
+  'VY': 'VLG',
+  'LS': 'EXS',
+  'BY': 'TOM',
+  'V7': 'VOE',
+  'N4': 'NOZ',
+  'T7': 'TVF',
+  'HV': 'TRA',
+  'TK': 'THY',
+  'QR': 'QTR',
+  'EK': 'UAE',
+  'EY': 'ETD',
+  'SQ': 'SIA',
+  'CX': 'CPA',
+  'BR': 'EVA',
+  'UA': 'UAL',
+  'AA': 'AAL',
+  'DL': 'DAL',
+  'AC': 'ACA',
+  'LX': 'SWR',
+  'OS': 'AUA',
+  'AY': 'FIN',
+  'SK': 'SAS',
+  'TP': 'TAP',
+  'AZ': 'AZA',
+  'BE': 'BEE',
+  'SN': 'BEL',
+  'LO': 'LOT',
+  'OK': 'CSA',
+  'SU': 'AFL',
+  'A3': 'AEE',
+  'RO': 'ROT',
+  'JU': 'ASL',
+  'PC': 'PGT',
+  'BT': 'BTI',
+  'DY': 'NAX',
+  'D8': 'IBK',
+};
+
+export function buildCallsignCandidates(flightNumber: string): string[] {
+  const cleaned = (flightNumber || '').trim().toUpperCase();
+  if (!cleaned) return [];
+
+  const candidates = new Set<string>();
+
+  // Try a 3-letter ICAO callsign first (e.g. RYR9034)
+  const icaoMatch = cleaned.match(/^([A-Z]{3})(\d+)$/);
+  if (icaoMatch) {
+    candidates.add(cleaned);
+  }
+
+  // Try a 2-char IATA prefix (letters, or letter+digit like U2/W6) + digits
+  const iataMatch = cleaned.match(/^([A-Z][A-Z0-9])(\d+)$/);
+  if (iataMatch) {
+    const [, iata, num] = iataMatch;
+    const icao = iataToIcaoPrefix[iata];
+    if (icao && icao !== '??') candidates.add(icao + num);
+    candidates.add(cleaned); // raw IATA form, in case provider stores it that way
+  }
+
+  return [...candidates];
 }
 
 export { OpenSkyProvider as default };
