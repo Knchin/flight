@@ -315,7 +315,7 @@ export async function reconstructRotation(
     // Step 2: Find the requested flight using flight lookup providers
     const flightLookupProvider = getProviderForCapability('flight_lookup');
     if (!flightLookupProvider) {
-      throw new Error('No flight lookup provider available. Configure AERODATABOX_API_KEY, FLIGHTAWARE_API_KEY, or AVIATIONSTACK_API_KEY');
+      throw new Error('No flight lookup provider available. Configure AVIATIONSTACK_API_KEY, FLIGHTAWARE_API_KEY, or AERODATABOX_API_KEY');
     }
     
     debugInfo.providers_used.push(flightLookupProvider.id);

@@ -78,10 +78,12 @@ export function getProviderForCapability(capability: 'flight_lookup' | 'aircraft
       return providers.find(p => p.id === 'opensky');
       
     case 'flight_lookup':
-      // Prefer AeroDataBox > FlightAware > AviationStack
-      return providers.find(p => p.id === 'aerodatabox') ||
+      // Prefer AviationStack (unblocked) > FlightAware > AeroDataBox
+      // AeroDataBox is last because its Cloudflare WAF blocks requests
+      // from Cloudflare Pages Functions IP ranges.
+      return providers.find(p => p.id === 'aviationstack') ||
              providers.find(p => p.id === 'flightaware') ||
-             providers.find(p => p.id === 'aviationstack');
+             providers.find(p => p.id === 'aerodatabox');
       
     case 'flight_track':
       // FlightAware has best tracks, OpenSky has experimental
