@@ -34,6 +34,19 @@ await Promise.all(
     const outName = basename(entryPoint).replace(/\.ts$/, '.mjs');
     const outPath = join(FUNCTIONS_DIR, outName);
 
+    const banner = `
+// Polyfill process.env for Cloudflare Workers (env is injected per-request via context.env)
+if (typeof globalThis.process === 'undefined') {
+  Object.defineProperty(globalThis, 'process', {
+    value: { env: {} },
+    writable: true,
+    configurable: true,
+    enumerable: false,
+  });
+}
+globalThis.process.env = globalThis.process.env || {};
+`;
+
     await build({
       entryPoints: [entryPoint],
       bundle: true,
@@ -41,6 +54,7 @@ await Promise.all(
       platform: 'node',
       target: 'es2022',
       mainFields: ['module', 'main'],
+      banner: { js: banner },
       outfile: outPath,
       logLevel: 'info',
       // Keep all imports inside the bundle (no externals)

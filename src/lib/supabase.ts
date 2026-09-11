@@ -2,19 +2,29 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+// Lazy client: created on first use so that process.env is populated by the
+// time it is called (Cloudflare injects env via context.env per-request, not
+// via process.env at module load).
+let client: ReturnType<typeof createClient> | null = null;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.warn('[Supabase] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+export function getSupabase() {
+  if (!client) {
+    const supabaseUrl = process.env.SUPABASE_URL || '';
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.warn('[Supabase] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    }
+
+    client = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+  }
+  return client;
 }
-
-export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-});
 
 // Type-safe wrapper for common queries
 export type TypedSupabaseClient = SupabaseClient<any, 'public', any>;
