@@ -81,6 +81,7 @@ export class AeroDataBoxProvider extends BaseProvider {
         'X-RapidAPI-Key': this.apiKey,
         'X-RapidAPI-Host': this.apiHost,
         'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (compatible; AircraftRotationTracker/1.0)',
       },
     });
     
