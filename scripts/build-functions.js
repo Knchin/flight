@@ -33,17 +33,23 @@ const bakeKeys = (process.env.BUILD_BAKE_ENV || '')
 
 const define = {};
 const baked = [];
+const missing = [];
 for (const key of bakeKeys) {
   const value = process.env[key];
   if (value) {
     define[`process.env.${key}`] = JSON.stringify(value);
     baked.push(key);
+  } else {
+    missing.push(key);
   }
 }
 if (baked.length > 0) {
   console.log(`Baking env vars into function bundle: ${baked.join(', ')}`);
 } else {
   console.log('No env vars baked into function bundle (BUILD_BAKE_ENV empty).');
+}
+if (missing.length > 0) {
+  console.warn(`WARNING: these requested env vars had no value in this job and were NOT baked: ${missing.join(', ')}`);
 }
 
 const tsFiles = readdirSync(FUNCTIONS_DIR)
